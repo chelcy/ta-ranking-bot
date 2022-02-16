@@ -1,0 +1,40 @@
+version: '3'
+
+x-common-variables: &common-variables
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ''
+  DOCKER_DRIVER: overlay2
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-variables
+    env_file:
+      - .env
+    tty: true
+    volumes:
+      - ..:/workspace:cached
+      - ~/.gnupg:/root/.gnupg
+    networks:
+      - app-net
+
+  docker:
+    image: docker:dind
+    environment:
+      <<: *common-variables
+    privileged: true
+    tty: true
+    volumes:
+      - ..:/workspace:cached
+    command: ['--registry-mirror', 'http://registry:5000']
+    networks:
+      - registry-net
+      - app-net
+
+networks:
+  app-net:
+  registry-net:
+    external: true

@@ -1,0 +1,17 @@
+{
+  "name": "get_athletics",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "license": "MIT",
+  "scripts": {
+    "start": "node -r esbuild-register debug.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.51.0",
+    "node-fetch": "^3.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.21",
+    "esbuild-register": "^3.3.2"
+  }
+}

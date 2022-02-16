@@ -1,0 +1,22 @@
+{
+  "name": "get_ranking",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "license": "MIT",
+  "scripts": {
+    "start": "node -r esbuild-register debug.ts"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.92",
+    "esbuild": "^0.14.21",
+    "esbuild-register": "^3.3.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.51.0",
+    "@aws-sdk/client-s3": "^3.51.0",
+    "@aws-sdk/credential-provider-node": "^3.51.0",
+    "aws-lambda": "^1.0.7",
+    "node-fetch": "^3.2.0",
+    "twitter-api-v2": "^1.10.3"
+  }
+}

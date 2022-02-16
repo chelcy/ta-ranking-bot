@@ -1,0 +1,32 @@
+{
+  "name": "ta-ranking-bot",
+  "dockerComposeFile": ["docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  },
+
+  "settings": {
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "ash",
+        "args": ["-l"]
+      }
+    },
+    "terminal.integrated.defaultProfile.linux": "bash"
+  },
+
+  "extensions": [
+    "EditorConfig.EditorConfig",
+    "MS-CEINTL.vscode-language-pack-ja",
+    "donjayamanne.githistory",
+    "esbenp.prettier-vscode",
+    "ms-azuretools.vscode-docker"
+  ],
+
+  "userEnvProbe": "loginInteractiveShell",
+
+  "shutdownAction": "stopCompose"
+}
