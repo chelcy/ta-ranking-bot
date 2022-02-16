@@ -26,11 +26,11 @@ interface ITableRow extends IAthleticInfo {
 export async function handler(athleticInfo: IAthleticInfo) {
   console.log('athleticInfo', athleticInfo);
 
-  // S3から最新のIDのアスレデータを取得
+  // DynamoDBから最新のIDのアスレデータを取得
   const latestRankingData = await getRankingFromTable(athleticInfo);
   console.log('latestRankingData', latestRankingData);
 
-  // 最新データがないか、S3の最新のアスレデータが受信したID/アスレ名と一致したら終了
+  // 最新データがないか、DynamoDBの最新のアスレデータが受信したID/アスレ名と一致したら終了
   if (!latestRankingData || latestRankingData.id === athleticInfo.id) {
     return;
   }
@@ -44,7 +44,7 @@ export async function handler(athleticInfo: IAthleticInfo) {
     return;
   }
 
-  // apiから取得したデータをS3に保存
+  // apiから取得したデータをDynamoDBに保存
   await saveData(athleticInfo, apiRes);
 
   // アスレデータを比較し、変更があればツイート
@@ -174,14 +174,16 @@ const checkRankingChange = async (
   await tweet(
     [
       `【TAランキング変動通知】`,
+      '',
       `「${athleticInfo.name}」のTAランキング上位10記録に変動がありました。`,
       ...tweetTarget.map(
         (t) =>
           `・${t.name} さんが ${t.rank}位 にランクイン (${msToTime(t.time)})`,
       ),
-      `詳しくは https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
+      '',
+      `https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
         athleticInfo.name,
-      )} をご覧ください。`,
+      )}`,
     ].join('\n'),
   );
 };
