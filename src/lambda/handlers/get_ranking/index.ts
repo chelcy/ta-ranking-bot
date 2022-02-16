@@ -109,7 +109,7 @@ const getRankingFromAPI = async (
     )}/ranking`,
   ).then((r) => r.json())) as IRankingRow[];
   console.log('rankingRes', rankingRes);
-  return (rankingRes || []).filter((value, index) => index < 10);
+  return (rankingRes || []).filter((value) => value.rank <= 10);
 };
 
 /**
