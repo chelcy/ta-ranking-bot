@@ -1,4 +1,3 @@
-import { SQSEvent, Context } from 'aws-lambda';
 import { TwitterApi } from 'twitter-api-v2';
 import fetch from 'node-fetch';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
@@ -24,8 +23,7 @@ interface ITableRow extends IAthleticInfo {
   ranking: string;
 }
 
-export async function handler(event: SQSEvent, context?: Context) {
-  const athleticInfo = JSON.parse(event.Records[0].body) as IAthleticInfo;
+export async function handler(athleticInfo: IAthleticInfo) {
   console.log('athleticInfo', athleticInfo);
 
   // S3から最新のIDのアスレデータを取得
