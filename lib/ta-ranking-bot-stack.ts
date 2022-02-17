@@ -8,13 +8,14 @@ import {
 } from 'aws-cdk-lib/aws-dynamodb';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import { Effect, ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import {
   Charset,
   LogLevel,
   NodejsFunction,
   SourceMapMode,
 } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export class TaRankingBotStack extends Stack {
@@ -82,6 +83,7 @@ export class TaRankingBotStack extends Stack {
         RANKING_TABLE_NAME: this.rankingTable.tableName,
         REGION: this.region,
       },
+      logRetention: RetentionDays.TWO_WEEKS,
     });
     lambda.role?.addToPrincipalPolicy(
       new PolicyStatement({
@@ -111,6 +113,7 @@ export class TaRankingBotStack extends Stack {
       environment: {
         RANKING_FUNCTION_ARN: this.handlerGetRanking.functionArn,
       },
+      logRetention: RetentionDays.TWO_WEEKS,
     });
     lambda.role?.addToPrincipalPolicy(
       new PolicyStatement({
