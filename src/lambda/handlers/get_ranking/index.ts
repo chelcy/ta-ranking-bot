@@ -28,7 +28,7 @@ export async function handler(athleticInfo: IAthleticInfo) {
 
   // DynamoDBから最新のIDのアスレデータを取得
   const latestRankingData = await getRankingFromTable(athleticInfo);
-  console.log('latestRankingData', latestRankingData);
+  console.log('latestRankingData', latestRankingData, athleticInfo);
 
   // 最新データがないか、DynamoDBの最新のアスレデータが受信したID/アスレ名と一致したら終了
   if (!latestRankingData || latestRankingData.id === athleticInfo.id) {
@@ -36,8 +36,8 @@ export async function handler(athleticInfo: IAthleticInfo) {
   }
 
   // apiからアスレデータの取得
-  const apiRes = await getRankingFromAPI(athleticInfo.name);
-  console.log('apiRes', apiRes);
+  const apiRes = await getRankingFromAPI(athleticInfo);
+  console.log('apiRes', apiRes, athleticInfo);
 
   // apiからの返りが空なら終了
   if (apiRes.length === 0) {
@@ -99,14 +99,14 @@ const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
  * @returns top 10 of ranking
  */
 const getRankingFromAPI = async (
-  athleticName: string,
+  athleticInfo: IAthleticInfo,
 ): Promise<IRankingRow[]> => {
   const rankingRes = (await fetch(
     `https://api.mchel.net/v1/athletic/${encodeURIComponent(
-      athleticName,
+      athleticInfo.name,
     )}/ranking`,
   ).then((r) => r.json())) as IRankingRow[];
-  console.log('rankingRes', rankingRes);
+  console.log('rankingRes', rankingRes, athleticInfo);
   return (rankingRes || []).filter((value) => value.rank <= 10);
 };
 
@@ -165,7 +165,7 @@ const checkRankingChange = async (
     (r) => !oldCom.includes(rankingRowToEpochName(r)),
   );
 
-  console.log('tweetTarget', tweetTarget);
+  console.log('tweetTarget', tweetTarget, athleticInfo);
 
   if (tweetTarget.length === 0) {
     return;
