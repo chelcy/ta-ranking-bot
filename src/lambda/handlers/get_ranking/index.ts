@@ -131,7 +131,7 @@ const saveData = async (
         S: athleticInfo.id,
       },
       ranking: {
-        S: JSON.stringify(ranking),
+        S: JSON.stringify(ranking.map(({ name, epoch }) => ({ name, epoch }))),
       },
     },
   });
