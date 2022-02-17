@@ -65,10 +65,10 @@
     "@aws-sdk/types" "3.50.0"
     tslib "^2.3.0"
 
-"@aws-sdk/client-sqs@^3.51.0":
+"@aws-sdk/client-lambda@^3.51.0":
   version "3.51.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-sqs/-/client-sqs-3.51.0.tgz#cc96bfda729d8bba56505af8badc01a12f13260b"
-  integrity sha512-QVnNDl5Bo1iic5kz2rHLnIeyheW4JHPGsU03gbBE2V68MXW6BcWBK6fhQRiURHzqTBXQkFxZ4T+8EDpoRxlXWQ==
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-lambda/-/client-lambda-3.51.0.tgz#e6a00a3ac8e03e6ead58a0412f5406e753e5d9f9"
+  integrity sha512-UPZo+BmlM13lkrq3ajTdrm9A8fNq7Sh/rpx2PpAIast36rmwXHvNPoRh7I0M0meNOrzylaUhF3WoMUs+iS6afg==
   dependencies:
     "@aws-crypto/sha256-browser" "2.0.0"
     "@aws-crypto/sha256-js" "2.0.0"
@@ -78,12 +78,10 @@
     "@aws-sdk/fetch-http-handler" "3.50.0"
     "@aws-sdk/hash-node" "3.50.0"
     "@aws-sdk/invalid-dependency" "3.50.0"
-    "@aws-sdk/md5-js" "3.50.0"
     "@aws-sdk/middleware-content-length" "3.50.0"
     "@aws-sdk/middleware-host-header" "3.50.0"
     "@aws-sdk/middleware-logger" "3.50.0"
     "@aws-sdk/middleware-retry" "3.51.0"
-    "@aws-sdk/middleware-sdk-sqs" "3.50.0"
     "@aws-sdk/middleware-serde" "3.50.0"
     "@aws-sdk/middleware-signing" "3.50.0"
     "@aws-sdk/middleware-stack" "3.50.0"
@@ -104,8 +102,7 @@
     "@aws-sdk/util-user-agent-node" "3.51.0"
     "@aws-sdk/util-utf8-browser" "3.49.0"
     "@aws-sdk/util-utf8-node" "3.49.0"
-    entities "2.2.0"
-    fast-xml-parser "3.19.0"
+    "@aws-sdk/util-waiter" "3.50.0"
     tslib "^2.3.0"
 
 "@aws-sdk/client-sso@3.51.0":
@@ -314,16 +311,6 @@
   dependencies:
     tslib "^2.3.0"
 
-"@aws-sdk/md5-js@3.50.0":
-  version "3.50.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/md5-js/-/md5-js-3.50.0.tgz#7fe56841411f1cfbd91d817dc08bb9ff915fe046"
-  integrity sha512-yO6ocDVq7Tk1tEzaikNk2qIEQ4yWOrwBJyOgH+vPPbiM0ldwgqK7dxjd0Y8vvACyCTLvqwUKwwMABudHREhR4w==
-  dependencies:
-    "@aws-sdk/types" "3.50.0"
-    "@aws-sdk/util-utf8-browser" "3.49.0"
-    "@aws-sdk/util-utf8-node" "3.49.0"
-    tslib "^2.3.0"
-
 "@aws-sdk/middleware-content-length@3.50.0":
   version "3.50.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-content-length/-/middleware-content-length-3.50.0.tgz#25e5d2996f2118c66a4c59ea4ead014c46405388"
@@ -360,15 +347,6 @@
     "@aws-sdk/types" "3.50.0"
     tslib "^2.3.0"
     uuid "^8.3.2"
-
-"@aws-sdk/middleware-sdk-sqs@3.50.0":
-  version "3.50.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-sqs/-/middleware-sdk-sqs-3.50.0.tgz#bbde11bc503b6fa15a5d5a1fceeb539821c5f181"
-  integrity sha512-u8hzraXe5x0WDk+0W6SGh6vSNSarmOo8diLU7U2n7HCUs01g3ojFUsWTGc0siA5bmS9nEOpr8idE7pkIDh8Rtg==
-  dependencies:
-    "@aws-sdk/types" "3.50.0"
-    "@aws-sdk/util-hex-encoding" "3.49.0"
-    tslib "^2.3.0"
 
 "@aws-sdk/middleware-sdk-sts@3.50.0":
   version "3.50.0"
@@ -643,6 +621,15 @@
   integrity sha512-QTF5b5OT2y6xsQl8sDiiXqg2n/VtgqFA+tP3WMooOSFd/ZFBbT6HoiSHXHMeTjpB/L9ZT+eUaCoBz8Jq09lBDg==
   dependencies:
     "@aws-sdk/util-buffer-from" "3.49.0"
+    tslib "^2.3.0"
+
+"@aws-sdk/util-waiter@3.50.0":
+  version "3.50.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/util-waiter/-/util-waiter-3.50.0.tgz#b7a4b5d9b3cd8efe7698f46bbb04a6ccab7427f6"
+  integrity sha512-dLDLUFGx8yTpX90TOo0tOQ+0fwp4LZHHoZmvM+O2OmcCUq/Yl+Esk0FkWMVjAQuMacsvUHX8kH04tia20wMUDQ==
+  dependencies:
+    "@aws-sdk/abort-controller" "3.50.0"
+    "@aws-sdk/types" "3.50.0"
     tslib "^2.3.0"
 
 bowser@^2.11.0:

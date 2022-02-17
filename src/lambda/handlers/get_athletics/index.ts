@@ -1,9 +1,9 @@
 import fetch from 'node-fetch';
 import {
-  SQSClient,
-  SendMessageCommand,
-  SendMessageCommandInput,
-} from '@aws-sdk/client-sqs';
+  LambdaClient,
+  InvokeCommand,
+  InvocationType,
+} from '@aws-sdk/client-lambda';
 
 interface ISection {
   head: string;
@@ -29,7 +29,7 @@ export async function handler() {
       },
       [],
     );
-    await addAthleticsToQueue(athleticNames);
+    await invokeAthleticHandler(athleticNames);
     console.log('task completed');
   } catch (error) {
     console.error('アスレ一覧の取得に失敗しました。');
@@ -38,32 +38,35 @@ export async function handler() {
   console.log('---- end');
 }
 
-const addAthleticsToQueue = async (athleticNames: string[]) => {
+const invokeAthleticHandler = async (athleticNames: string[]) => {
   const id = `${new Date().getTime()}`;
-  const client = new SQSClient({});
+  const client = new LambdaClient({});
   console.log('task id', id);
   await Promise.all(
     athleticNames.map(async (name) => {
-      await addMessage({ client, id, name });
+      await invoke({ client, id, name });
     }),
   );
 };
 
-const addMessage = async ({
+const invoke = async ({
   client,
   id,
   name,
 }: {
-  client: SQSClient;
+  client: LambdaClient;
   id: string;
   name: string;
 }) => {
-  const params: SendMessageCommandInput = {
-    QueueUrl: process.env.QUEUE_URL,
-    MessageBody: JSON.stringify({ id, name }),
-  };
-
-  const command = new SendMessageCommand(params);
-
-  await client.send(command);
+  try {
+    const command = new InvokeCommand({
+      FunctionName: process.env.RANKING_FUNCTION_ARN,
+      InvocationType: InvocationType.Event,
+      Payload: new TextEncoder().encode(JSON.stringify({ id, name })),
+    });
+    await client.send(command);
+  } catch (error) {
+    console.log('cannnot invoke');
+    console.error(error);
+  }
 };

@@ -7,7 +7,7 @@
     "start": "node -r esbuild-register debug.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-sqs": "^3.51.0",
+    "@aws-sdk/client-lambda": "^3.51.0",
     "node-fetch": "^3.2.0"
   },
   "devDependencies": {
