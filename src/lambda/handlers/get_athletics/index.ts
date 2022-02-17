@@ -29,6 +29,7 @@ export async function handler() {
       },
       [],
     );
+    console.log(JSON.stringify(athleticNames));
     await invokeAthleticHandler(athleticNames);
     console.log('task completed');
   } catch (error) {
