@@ -72,7 +72,7 @@ export class TaRankingBotStack extends Stack {
         logLevel: LogLevel.INFO,
         charset: Charset.UTF8,
       },
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(5),
       memorySize: 256,
       reservedConcurrentExecutions: 1,
       environment: {
@@ -107,7 +107,7 @@ export class TaRankingBotStack extends Stack {
         logLevel: LogLevel.INFO,
         charset: Charset.UTF8,
       },
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(15),
       memorySize: 256,
       reservedConcurrentExecutions: 1,
       environment: {

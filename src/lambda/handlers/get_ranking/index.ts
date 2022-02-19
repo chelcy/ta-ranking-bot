@@ -6,22 +6,18 @@ import {
   PutItemCommand,
   QueryCommand,
 } from '@aws-sdk/client-dynamodb';
+import {
+  IAthleticInfo,
+  IMinetoolsUUID,
+  IRankingItem,
+  IRankingItemRaw,
+  ITableRow,
+  ITableRowRanking,
+} from './types';
 
-interface IRankingRow {
-  name: string;
-  rank: number;
-  time: number;
-  epoch: number;
-}
-
-interface IAthleticInfo {
-  id: string;
-  name: string;
-}
-
-interface ITableRow extends IAthleticInfo {
-  ranking: string;
-}
+const nameUUIDMap: {
+  [name: string]: string;
+} = {};
 
 export async function handler(athleticInfo: IAthleticInfo) {
   console.log('athleticInfo', athleticInfo);
@@ -49,11 +45,7 @@ export async function handler(athleticInfo: IAthleticInfo) {
 
   // アスレデータを比較し、変更があればツイート
   // 方針: top10のepoch+nameの組み合わせが前回のtop10の組み合わせに含まれていない場合新レコードであるため更新通知対象
-  await checkRankingChange(
-    athleticInfo,
-    JSON.parse(latestRankingData.ranking || '{}') as IRankingRow[],
-    apiRes,
-  );
+  await checkRankingChange(athleticInfo, latestRankingData.ranking, apiRes);
 }
 
 /**
@@ -61,7 +53,9 @@ export async function handler(athleticInfo: IAthleticInfo) {
  * @param athleticInfo
  * @returns
  */
-const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
+const getRankingFromTable = async (
+  athleticInfo: IAthleticInfo,
+): Promise<ITableRow | null> => {
   const client = getDynamoClient();
 
   const command = new QueryCommand({
@@ -86,7 +80,7 @@ const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
     return {
       id: item?.id.S,
       name: item?.name.S,
-      ranking: item?.ranking.S,
+      ranking: JSON.parse(item?.ranking.S || '[]'),
     } as ITableRow;
   } else {
     return null;
@@ -100,14 +94,39 @@ const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
  */
 const getRankingFromAPI = async (
   athleticInfo: IAthleticInfo,
-): Promise<IRankingRow[]> => {
+): Promise<IRankingItem[]> => {
   const rankingRes = (await fetch(
     `https://api.mchel.net/v1/athletic/${encodeURIComponent(
       athleticInfo.name,
     )}/ranking`,
-  ).then((r) => r.json())) as IRankingRow[];
-  console.log('rankingRes', rankingRes, athleticInfo);
-  return (rankingRes || []).filter((value) => value.rank <= 10);
+  ).then((r) => r.json())) as IRankingItemRaw[];
+
+  // uuidの付与
+  const ranking: IRankingItem[] = await Promise.all(
+    rankingRes.map(async (r) => ({
+      ...r,
+      uuid: await getUUIDFromName(r.name),
+    })),
+  );
+  console.log('rankingRes', ranking, athleticInfo);
+  return (ranking || []).filter((value) => value.rank <= 10);
+};
+
+/**
+ * username to uuid
+ * @param name username
+ * @returns uuid
+ */
+const getUUIDFromName = async (name: string): Promise<string> => {
+  if (Object.keys(nameUUIDMap).includes(name)) {
+    return nameUUIDMap[name];
+  }
+  const res = (await fetch(`https://api.minetools.eu/uuid/${name}`).then((r) =>
+    r.json(),
+  )) as IMinetoolsUUID;
+  const { id: uuid } = res;
+  nameUUIDMap[name] = uuid;
+  return uuid;
 };
 
 /**
@@ -117,7 +136,7 @@ const getRankingFromAPI = async (
  */
 const saveData = async (
   athleticInfo: IAthleticInfo,
-  ranking: IRankingRow[],
+  ranking: IRankingItem[],
 ) => {
   const client = getDynamoClient();
 
@@ -131,7 +150,7 @@ const saveData = async (
         S: athleticInfo.id,
       },
       ranking: {
-        S: JSON.stringify(ranking.map(({ name, epoch }) => ({ name, epoch }))),
+        S: JSON.stringify(ranking.map(({ uuid, epoch }) => ({ uuid, epoch }))),
       },
     },
   });
@@ -154,8 +173,8 @@ const getDynamoClient = () => {
 
 const checkRankingChange = async (
   athleticInfo: IAthleticInfo,
-  oldRanking: IRankingRow[],
-  newRanking: IRankingRow[],
+  oldRanking: ITableRowRanking[],
+  newRanking: IRankingItem[],
 ) => {
   // oldのepochとnameの組み合わせ
   const oldCom = oldRanking.map((r) => rankingRowToEpochName(r));
@@ -175,7 +194,7 @@ const checkRankingChange = async (
     [
       `【TAランキング変動通知】`,
       '',
-      `「${athleticInfo.name}」のTAランキング上位10記録に変動がありました。`,
+      `「${athleticInfo.name}」のTAランキング上位10位に変動がありました。`,
       ...tweetTarget.map(
         (t) =>
           `・${t.name} さんが ${t.rank}位 にランクイン (${msToTime(t.time)})`,
@@ -188,8 +207,8 @@ const checkRankingChange = async (
   );
 };
 
-const rankingRowToEpochName = (data: IRankingRow) =>
-  `${data.epoch}-${data.name}`;
+const rankingRowToEpochName = (data: ITableRowRanking) =>
+  `${data.epoch}-${data.uuid}`;
 
 const msToTime = (duration: number) => {
   // from https://qiita.com/mtane0412/items/7106012c79d3365d3340
@@ -220,6 +239,6 @@ const tweet = async (message: string) => {
   try {
     await twitterClient.v1.tweet(message);
   } catch (error) {
-    console.warn('tweet error', message, error);
+    console.error('tweet error', message, error);
   }
 };

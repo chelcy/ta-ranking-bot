@@ -4,15 +4,7 @@ import {
   InvokeCommand,
   InvocationType,
 } from '@aws-sdk/client-lambda';
-
-interface ISection {
-  head: string;
-  name: string[];
-}
-
-interface IAthleticsData {
-  [key: string]: ISection[];
-}
+import { IAthleticsData } from './types';
 
 export async function handler() {
   console.log('---- start');
@@ -29,7 +21,7 @@ export async function handler() {
       },
       [],
     );
-    console.log(JSON.stringify(athleticNames));
+    console.log(JSON.stringify(athleticNames), athleticNames.length);
     await invokeAthleticHandler(athleticNames);
     console.log('task completed');
   } catch (error) {
