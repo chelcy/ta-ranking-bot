@@ -1,17 +1,11 @@
 /**
- * ChelcyNetwork APIの生のレスポンス
+ * ChelcyNetwork APIのレスポンス
  */
-export interface IRankingItemRaw {
+export interface IRankingItem {
   name: string;
   rank: number;
   time: number;
   epoch: number;
-}
-
-/**
- * ChelcyNetwork APIのレスポンス
- */
-export interface IRankingItem extends IRankingItemRaw {
   uuid: string;
 }
 
@@ -36,14 +30,4 @@ export interface ITableRow extends IAthleticInfo {
 export interface ITableRowRanking {
   uuid: string;
   epoch: number;
-}
-
-/**
- * minetoolsのUUIDのAPIのレスポンス
- */
-export interface IMinetoolsUUID {
-  cache: any;
-  id: string;
-  name: string;
-  status: string;
 }
