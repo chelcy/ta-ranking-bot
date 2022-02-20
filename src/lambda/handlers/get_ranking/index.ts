@@ -8,16 +8,10 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   IAthleticInfo,
-  IMinetoolsUUID,
   IRankingItem,
-  IRankingItemRaw,
   ITableRow,
   ITableRowRanking,
 } from './types';
-
-const nameUUIDMap: {
-  [name: string]: string;
-} = {};
 
 export async function handler(athleticInfo: IAthleticInfo) {
   console.log('athleticInfo', athleticInfo);
@@ -99,34 +93,10 @@ const getRankingFromAPI = async (
     `https://api.mchel.net/v1/athletic/${encodeURIComponent(
       athleticInfo.name,
     )}/ranking`,
-  ).then((r) => r.json())) as IRankingItemRaw[];
+  ).then((r) => r.json())) as IRankingItem[];
 
-  // uuidの付与
-  const ranking: IRankingItem[] = await Promise.all(
-    rankingRes.map(async (r) => ({
-      ...r,
-      uuid: await getUUIDFromName(r.name),
-    })),
-  );
-  console.log('rankingRes', ranking, athleticInfo);
-  return (ranking || []).filter((value) => value.rank <= 10);
-};
-
-/**
- * username to uuid
- * @param name username
- * @returns uuid
- */
-const getUUIDFromName = async (name: string): Promise<string> => {
-  if (Object.keys(nameUUIDMap).includes(name)) {
-    return nameUUIDMap[name];
-  }
-  const res = (await fetch(`https://api.minetools.eu/uuid/${name}`).then((r) =>
-    r.json(),
-  )) as IMinetoolsUUID;
-  const { id: uuid } = res;
-  nameUUIDMap[name] = uuid;
-  return uuid;
+  console.log('rankingRes', rankingRes, athleticInfo);
+  return (rankingRes || []).filter((value) => value.rank <= 10);
 };
 
 /**
