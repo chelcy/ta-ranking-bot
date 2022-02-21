@@ -172,7 +172,7 @@ const checkRankingChange = async (
       '',
       `https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
         athleticInfo.name,
-      )}`,
+      ).replace(/[!'()*.,]/g, c => '%' + c.charCodeAt(0).toString(16))}`,
     ].join('\n'),
   );
 };
