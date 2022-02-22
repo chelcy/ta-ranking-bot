@@ -1,4 +1,3 @@
-import { SQSEvent, Context } from 'aws-lambda';
 import { TwitterApi } from 'twitter-api-v2';
 import fetch from 'node-fetch';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
@@ -7,55 +6,40 @@ import {
   PutItemCommand,
   QueryCommand,
 } from '@aws-sdk/client-dynamodb';
+import {
+  IAthleticInfo,
+  IRankingItem,
+  ITableRow,
+  ITableRowRanking,
+} from './types';
 
-interface IRankingRow {
-  name: string;
-  rank: number;
-  time: number;
-  epoch: number;
-}
-
-interface IAthleticInfo {
-  id: string;
-  name: string;
-}
-
-interface ITableRow extends IAthleticInfo {
-  ranking: string;
-}
-
-export async function handler(event: SQSEvent, context?: Context) {
-  const athleticInfo = JSON.parse(event.Records[0].body) as IAthleticInfo;
+export async function handler(athleticInfo: IAthleticInfo) {
   console.log('athleticInfo', athleticInfo);
 
-  // S3から最新のIDのアスレデータを取得
+  // DynamoDBから最新のIDのアスレデータを取得
   const latestRankingData = await getRankingFromTable(athleticInfo);
-  console.log('latestRankingData', latestRankingData);
+  console.log('latestRankingData', latestRankingData, athleticInfo);
 
-  // 最新データがないか、S3の最新のアスレデータが受信したID/アスレ名と一致したら終了
+  // 最新データがないか、DynamoDBの最新のアスレデータが受信したID/アスレ名と一致したら終了
   if (!latestRankingData || latestRankingData.id === athleticInfo.id) {
     return;
   }
 
   // apiからアスレデータの取得
-  const apiRes = await getRankingFromAPI(athleticInfo.name);
-  console.log('apiRes', apiRes);
+  const apiRes = await getRankingFromAPI(athleticInfo);
+  console.log('apiRes', apiRes, athleticInfo);
 
   // apiからの返りが空なら終了
   if (apiRes.length === 0) {
     return;
   }
 
-  // apiから取得したデータをS3に保存
+  // apiから取得したデータをDynamoDBに保存
   await saveData(athleticInfo, apiRes);
 
   // アスレデータを比較し、変更があればツイート
   // 方針: top10のepoch+nameの組み合わせが前回のtop10の組み合わせに含まれていない場合新レコードであるため更新通知対象
-  await checkRankingChange(
-    athleticInfo,
-    JSON.parse(latestRankingData.ranking || '{}') as IRankingRow[],
-    apiRes,
-  );
+  await checkRankingChange(athleticInfo, latestRankingData.ranking, apiRes);
 }
 
 /**
@@ -63,7 +47,9 @@ export async function handler(event: SQSEvent, context?: Context) {
  * @param athleticInfo
  * @returns
  */
-const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
+const getRankingFromTable = async (
+  athleticInfo: IAthleticInfo,
+): Promise<ITableRow | null> => {
   const client = getDynamoClient();
 
   const command = new QueryCommand({
@@ -88,7 +74,7 @@ const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
     return {
       id: item?.id.S,
       name: item?.name.S,
-      ranking: item?.ranking.S,
+      ranking: JSON.parse(item?.ranking.S || '[]'),
     } as ITableRow;
   } else {
     return null;
@@ -101,14 +87,15 @@ const getRankingFromTable = async (athleticInfo: IAthleticInfo) => {
  * @returns top 10 of ranking
  */
 const getRankingFromAPI = async (
-  athleticName: string,
-): Promise<IRankingRow[]> => {
+  athleticInfo: IAthleticInfo,
+): Promise<IRankingItem[]> => {
   const rankingRes = (await fetch(
     `https://api.mchel.net/v1/athletic/${encodeURIComponent(
-      athleticName,
+      athleticInfo.name,
     )}/ranking`,
-  ).then((r) => r.json())) as IRankingRow[];
-  console.log('rankingRes', rankingRes);
+  ).then((r) => r.json())) as IRankingItem[];
+
+  console.log('rankingRes', rankingRes, athleticInfo);
   return (rankingRes || []).filter((value) => value.rank <= 10);
 };
 
@@ -119,7 +106,7 @@ const getRankingFromAPI = async (
  */
 const saveData = async (
   athleticInfo: IAthleticInfo,
-  ranking: IRankingRow[],
+  ranking: IRankingItem[],
 ) => {
   const client = getDynamoClient();
 
@@ -133,7 +120,7 @@ const saveData = async (
         S: athleticInfo.id,
       },
       ranking: {
-        S: JSON.stringify(ranking),
+        S: JSON.stringify(ranking.map(({ uuid, epoch }) => ({ uuid, epoch }))),
       },
     },
   });
@@ -156,8 +143,8 @@ const getDynamoClient = () => {
 
 const checkRankingChange = async (
   athleticInfo: IAthleticInfo,
-  oldRanking: IRankingRow[],
-  newRanking: IRankingRow[],
+  oldRanking: ITableRowRanking[],
+  newRanking: IRankingItem[],
 ) => {
   // oldのepochとnameの組み合わせ
   const oldCom = oldRanking.map((r) => rankingRowToEpochName(r));
@@ -167,7 +154,7 @@ const checkRankingChange = async (
     (r) => !oldCom.includes(rankingRowToEpochName(r)),
   );
 
-  console.log('tweetTarget', tweetTarget);
+  console.log('tweetTarget', tweetTarget, athleticInfo);
 
   if (tweetTarget.length === 0) {
     return;
@@ -176,20 +163,22 @@ const checkRankingChange = async (
   await tweet(
     [
       `【TAランキング変動通知】`,
-      `「${athleticInfo.name}」のTAランキング上位10記録に変動がありました。`,
+      '',
+      `「${athleticInfo.name}」のTAランキング上位10位に変動がありました。`,
       ...tweetTarget.map(
         (t) =>
           `・${t.name} さんが ${t.rank}位 にランクイン (${msToTime(t.time)})`,
       ),
-      `詳しくは https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
+      '',
+      `https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
         athleticInfo.name,
-      )} をご覧ください。`,
+      ).replace(/[!'()*.,]/g, c => '%' + c.charCodeAt(0).toString(16))}`,
     ].join('\n'),
   );
 };
 
-const rankingRowToEpochName = (data: IRankingRow) =>
-  `${data.epoch}-${data.name}`;
+const rankingRowToEpochName = (data: ITableRowRanking) =>
+  `${data.epoch}-${data.uuid}`;
 
 const msToTime = (duration: number) => {
   // from https://qiita.com/mtane0412/items/7106012c79d3365d3340
@@ -220,6 +209,6 @@ const tweet = async (message: string) => {
   try {
     await twitterClient.v1.tweet(message);
   } catch (error) {
-    console.warn('tweet error', message, error);
+    console.error('tweet error', message, error);
   }
 };

@@ -8,19 +8,17 @@ import {
 } from 'aws-cdk-lib/aws-dynamodb';
 import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import { Effect, ManagedPolicy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import {
   Charset,
   LogLevel,
   NodejsFunction,
   SourceMapMode,
 } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { Queue } from 'aws-cdk-lib/aws-sqs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export class TaRankingBotStack extends Stack {
-  private readonly queue: Queue;
   private readonly handlerGetAthletics: NodejsFunction;
   private readonly rankingTable: Table;
   private readonly handlerGetRanking: NodejsFunction;
@@ -28,68 +26,13 @@ export class TaRankingBotStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    this.queue = this.createQueue();
-
-    this.handlerGetAthletics = this.createLambdaGetAthletics();
-
-    this.createEventRule();
-
     this.rankingTable = this.createRankingTable();
 
     this.handlerGetRanking = this.createLambdaGetRanking();
 
-    this.createSqsEventSource();
-  }
+    this.handlerGetAthletics = this.createLambdaGetAthletics();
 
-  private createQueue() {
-    const queue = new Queue(this, 'AthleticQueue', {
-      visibilityTimeout: Duration.seconds(180),
-      retentionPeriod: Duration.hours(1),
-      deliveryDelay: Duration.minutes(1),
-      maxMessageSizeBytes: 256 * 1024,
-      receiveMessageWaitTime: Duration.seconds(20),
-    });
-    return queue;
-  }
-
-  private createLambdaGetAthletics() {
-    const lambda = new NodejsFunction(this, 'GetAthleticsFunction', {
-      entry: 'src/lambda/handlers/get_athletics/index.ts',
-      bundling: {
-        minify: true,
-        sourceMap: true,
-        sourceMapMode: SourceMapMode.INLINE,
-        sourcesContent: false,
-        target: 'es2020',
-        logLevel: LogLevel.INFO,
-        charset: Charset.UTF8,
-      },
-      timeout: Duration.seconds(30),
-      memorySize: 256,
-      reservedConcurrentExecutions: 1,
-      environment: {
-        QUEUE_URL: this.queue.queueUrl,
-      },
-    });
-    lambda.role?.addToPrincipalPolicy(
-      new PolicyStatement({
-        actions: ['sqs:SendMessage'],
-        resources: ['*'],
-        effect: Effect.ALLOW,
-      }),
-    );
-    return lambda;
-  }
-
-  private createEventRule() {
-    new Rule(this, 'GetAthleticsRule', {
-      schedule: Schedule.cron({
-        minute: '0',
-      }),
-      targets: [
-        new LambdaFunction(this.handlerGetAthletics, { retryAttempts: 1 }),
-      ],
-    });
+    this.createEventRule();
   }
 
   private createRankingTable() {
@@ -129,7 +72,7 @@ export class TaRankingBotStack extends Stack {
         logLevel: LogLevel.INFO,
         charset: Charset.UTF8,
       },
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(5),
       memorySize: 256,
       reservedConcurrentExecutions: 1,
       environment: {
@@ -140,12 +83,8 @@ export class TaRankingBotStack extends Stack {
         RANKING_TABLE_NAME: this.rankingTable.tableName,
         REGION: this.region,
       },
+      logRetention: RetentionDays.TWO_WEEKS,
     });
-    lambda.role?.addManagedPolicy(
-      ManagedPolicy.fromAwsManagedPolicyName(
-        'service-role/AWSLambdaSQSQueueExecutionRole',
-      ),
-    );
     lambda.role?.addToPrincipalPolicy(
       new PolicyStatement({
         actions: ['dynamodb:*'],
@@ -156,10 +95,44 @@ export class TaRankingBotStack extends Stack {
     return lambda;
   }
 
-  private createSqsEventSource() {
-    const eventSource = new SqsEventSource(this.queue, {
-      batchSize: 1,
+  private createLambdaGetAthletics() {
+    const lambda = new NodejsFunction(this, 'GetAthleticsFunction', {
+      entry: 'src/lambda/handlers/get_athletics/index.ts',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        sourceMapMode: SourceMapMode.INLINE,
+        sourcesContent: false,
+        target: 'es2020',
+        logLevel: LogLevel.INFO,
+        charset: Charset.UTF8,
+      },
+      timeout: Duration.seconds(15),
+      memorySize: 256,
+      reservedConcurrentExecutions: 1,
+      environment: {
+        RANKING_FUNCTION_ARN: this.handlerGetRanking.functionArn,
+      },
+      logRetention: RetentionDays.TWO_WEEKS,
     });
-    this.handlerGetRanking.addEventSource(eventSource);
+    lambda.role?.addToPrincipalPolicy(
+      new PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: ['*'],
+        effect: Effect.ALLOW,
+      }),
+    );
+    return lambda;
+  }
+
+  private createEventRule() {
+    new Rule(this, 'GetAthleticsRule', {
+      schedule: Schedule.cron({
+        minute: '0',
+      }),
+      targets: [
+        new LambdaFunction(this.handlerGetAthletics, { retryAttempts: 1 }),
+      ],
+    });
   }
 }
