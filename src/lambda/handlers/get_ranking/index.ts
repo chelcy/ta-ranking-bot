@@ -37,9 +37,14 @@ export async function handler(athleticInfo: IAthleticInfo) {
   // apiから取得したデータをDynamoDBに保存
   await saveData(athleticInfo, apiRes);
 
+  // DynamoDBの最新のアスレデータが無いなら終了
+  if (!latestRankingData) {
+    return;
+  }
+
   // アスレデータを比較し、変更があればツイート
   // 方針: top10のepoch+nameの組み合わせが前回のtop10の組み合わせに含まれていない場合新レコードであるため更新通知対象
-  await checkRankingChange(athleticInfo, latestRankingData?.ranking || [], apiRes);
+  await checkRankingChange(athleticInfo, latestRankingData.ranking, apiRes);
 }
 
 /**
