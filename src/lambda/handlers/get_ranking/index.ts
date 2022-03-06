@@ -20,8 +20,8 @@ export async function handler(athleticInfo: IAthleticInfo) {
   const latestRankingData = await getRankingFromTable(athleticInfo);
   console.log('latestRankingData', latestRankingData, athleticInfo);
 
-  // 最新データがないか、DynamoDBの最新のアスレデータが受信したID/アスレ名と一致したら終了
-  if (!latestRankingData || latestRankingData.id === athleticInfo.id) {
+  // DynamoDBの最新のアスレデータが受信したID/アスレ名と一致したら終了
+  if (latestRankingData && latestRankingData.id === athleticInfo.id) {
     return;
   }
 
@@ -36,6 +36,11 @@ export async function handler(athleticInfo: IAthleticInfo) {
 
   // apiから取得したデータをDynamoDBに保存
   await saveData(athleticInfo, apiRes);
+
+  // DynamoDBの最新のアスレデータが無いなら終了
+  if (!latestRankingData) {
+    return;
+  }
 
   // アスレデータを比較し、変更があればツイート
   // 方針: top10のepoch+nameの組み合わせが前回のtop10の組み合わせに含まれていない場合新レコードであるため更新通知対象
