@@ -177,7 +177,7 @@ const checkRankingChange = async (
       '',
       `https://www.mchel.net/info#athletic:ranking:${encodeURIComponent(
         athleticInfo.name,
-      ).replace(/[!'()*.,]/g, c => '%' + c.charCodeAt(0).toString(16))}`,
+      ).replace(/[!'()*.,]/g, (c) => '%' + c.charCodeAt(0).toString(16))}`,
     ].join('\n'),
   );
 };
@@ -212,7 +212,8 @@ const tweet = async (message: string) => {
   });
 
   try {
-    await twitterClient.v1.tweet(message);
+    await twitterClient.v2.tweet(message);
+    console.log('ツイート成功');
   } catch (error) {
     console.error('tweet error', message, error);
   }
